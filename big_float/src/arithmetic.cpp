@@ -42,7 +42,7 @@ big_float big_float::operator%(const big_float &other) const {
     big_int q = num/den;
     big_float result = *this - other * big_float(q);
     result.simplify();
-    return result;
+    return result.abs();
 }
 
 big_float big_float::operator+(const big_float &other) const {

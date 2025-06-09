@@ -56,53 +56,66 @@ big_float big_float::PI(const big_float& eps) {
 }
 
 big_float sin(const big_float &base, const big_float &eps){
-    // calculate π and 2π for angle normalization
+    // Validate precision
+    if (eps <= big_float(0)) {
+        throw std::invalid_argument("Epsilon must be positive for sin computation");
+    }
+
+    // Compute π, 2π, and π/2 with specified precision
     big_float pi = big_float::PI(eps);
     big_float two_pi = pi * big_float(2);
     big_float half_pi = pi / big_float(2);
 
-    // normalize input angle to [-2π, 2π] range
+    // Normalize input angle to [-2π, 2π]
     big_float x = base;
     if (x.abs() > two_pi) {
-        x = x % (two_pi); // use modulo to bring angle within one period
+        x = x % two_pi; // Reduce to [-2π, 2π]
     }
 
-    // reduce angle to [0, π] range and remember sign change
+    // Handle negative angles: sin(-x) = -sin(x)
     bool negate = false;
-    if (x > pi) {
-        // sin(x) = -sin(x - π) = sin(2π - x) for x in (π, 2π]
-        x = two_pi - x;
+    if (x < big_float(0)) {
+        x = -x;
         negate = true;
     }
 
+    // Reduce angle to [0, π]
+    if (x > pi) {
+        // sin(x) = -sin(2π - x) for x in (π, 2π]
+        x = two_pi - x;
+        negate = !negate; // Flip sign
+    }
+
+    // Reduce angle to [0, π/2]
     if (x > half_pi) {
         // sin(x) = sin(π - x) for x in (π/2, π]
         x = pi - x;
     }
-    if (x < half_pi) {
-        // sin(x) = -sin(π + x) for x in (-π, -π/2)
-        x = big_float(-pi) - x;
-    }
 
-    big_float result = x; // base for sum
-    big_float term = x; // the first term of series
-    big_float x_squared = x.pow(2); // x^2
-    unsigned long n = 1; // counter
+    // Compute sin(x) using Taylor series
+    big_float result = x; // First term: x
+    big_float term = x; // Current term
+    big_float x_squared = x.pow(2); // x^2 for efficiency
+    unsigned long n = 1; // Term counter
+    const int max_iter = 1000000; // Prevent infinite loops
+    int iter = 0;
 
-    // sin(x) = Σ (-1)ⁿ x²ⁿ⁺¹/(2n+1)!
+    // Series: sin(x) = x - x^3/3! + x^5/5! - ...
+    // Each term: a_n = a_{n-1} * (-x^2) / (2n * (2n+1))
     while (term.abs() > eps) {
         term = term * (-x_squared) / big_float(2 * n * (2 * n + 1));
-        result = result + term;
+        result += term;
         n++;
-
-        /* Explanation, why there is no factorial and pow
-         * each subsequent term can be derived by their previous one, like
-         * a(n) = a(n - 1) * (-x²) / (2n * (2n + 1)) what equally to a(n) = (-1)ⁿ * x²ⁿ⁺¹ / (2n + 1)!
-         * */
+        iter++;
+        if (iter > max_iter) {
+            throw std::runtime_error("sin: series did not converge within max iterations");
+        }
+        // Simplify to maintain numerical stability
         result.simplify();
         term.simplify();
     }
 
+    // Apply sign based on original angle
     return negate ? -result : result;
 }
 
