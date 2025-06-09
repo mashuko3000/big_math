@@ -144,7 +144,6 @@ big_float big_float::reciprocal() const {
 }
 
 big_float big_float::sqrt(const big_float &eps) const {
-    // Validate input
     if (*this < big_float(0)) {
         throw std::invalid_argument("Cannot calculate square root of a negative number");
     }
@@ -152,20 +151,17 @@ big_float big_float::sqrt(const big_float &eps) const {
         return big_float(0);
     }
 
-    // initial guess using double arithmetic
     double approx_double = (double)numerator_.convert_to<double>() / denominator_.convert_to<double>();
     if (approx_double <= 0.0) {
         throw std::invalid_argument("Cannot calculate square root of non-positive number");
     }
     approx_double = std::sqrt(approx_double);
 
-    // initialize guess
     big_float guess(approx_double);
     if (guess == big_float(0)) {
-        guess = big_float(1); // avoid zero guess
+        guess = big_float(1);
     }
 
-    // newton's method
     big_float two(2);
     big_float prev_guess;
     int max_iter = 1000000;
@@ -178,7 +174,6 @@ big_float big_float::sqrt(const big_float &eps) const {
         }
         guess = (guess + (*this) / guess) / two;
 
-        // check convergence using relative difference
         big_float diff = (guess - prev_guess).abs();
         big_float rel_diff = diff / guess.abs();
         if (rel_diff < eps && iter > 0) {
@@ -191,7 +186,6 @@ big_float big_float::sqrt(const big_float &eps) const {
         }
     } while (true);
 
-    guess.simplify();
     return guess;
 }
 
