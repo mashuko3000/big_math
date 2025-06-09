@@ -1,2 +1,2 @@
 # big_math
-wanna die
+I don't give a fuck, go see the formulas yourself
